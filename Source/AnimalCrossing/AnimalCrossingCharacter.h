@@ -24,6 +24,10 @@ class AAnimalCrossingCharacter : public ACharacter
 public:
 	AAnimalCrossingCharacter();
 
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
+
+
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -35,6 +39,12 @@ public:
 	// Determines what kind of collection area player is in
 	void CanInteract(bool Able, FString Area, FString Item, int Amount);
 
+
+	UPROPERTY(BlueprintReadOnly)
+		FString NearByInteraction;
+
+	UPROPERTY(BlueprintReadOnly)
+		UMyInventory* Inventory;
 private:
 
 	// Determines if player interacts with area or to cut action short
@@ -43,20 +53,32 @@ private:
 	// Collects items from area into inventory
 	void CollectFromArea();
 
+	// Calls inventory iterate function
+	void CallIterate(float value);
+
+	// Figures out when to add items to inventory
+	void CallAdd();
+
 
 	UPROPERTY()
-		bool CanInteract; // When player is inside trigger box
+		bool canInteract; // When player is inside trigger box
 	UPROPERTY()
 		bool IsInteracting; // When player interacts for animations
 	UPROPERTY()
-		FString InteractionType; // Holds type of value
-
+		FString InteractionType; // Holds type of value for area
+	UPROPERTY()
+		FString AddType; // Holds value of item passed through interaction
+	UPROPERTY()
+		int AddAmount; // Holds amount value
+	UPROPERTY()
+		float Counter; // Tracks amount of time since interaction
+	UPROPERTY()
+		float Delay; // Tracks if enough time has passed
+	UPROPERTY()
+		USphereComponent* Range; // Interaction range on character
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
-	/** Resets HMD orientation in VR. */
-	void OnResetVR();
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -76,11 +98,6 @@ protected:
 	 */
 	void LookUpAtRate(float Rate);
 
-	/** Handler for when a touch input begins. */
-	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
-
-	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
 protected:
 	// APawn interface
@@ -94,14 +111,27 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 private:
-	// Calls inventory iterate function
-	void CallIterate(float value);
-	// Figures out when to add items to inventory
-	void CallAdd();
+
+	void HorizontalMove(float value);
+	void VerticalMove(float value);
+	void HorizontalRot(float value);
+	void VerticalRot(float value);
 
 	UPROPERTY()
-		UMyInventory* Inventory;
+		USpringArmComponent* Arm;
+
+	void CheckJump();
+
 	UPROPERTY()
-		USphereComponent* Range;
+		bool Jumping;
+
+	void Zoom(float value);
+	void Switch();
+
+	UPROPERTY()
+		bool FirstPerson;
+
+	UPROPERTY()
+		UCameraComponent* Cam;
 };
 

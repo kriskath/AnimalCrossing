@@ -32,17 +32,19 @@ public:
 	void AddItem(FString Name, int Amount);
 
 
+	UPROPERTY(BlueprintReadOnly)
+		TArray<FString> ItemNames; // Item names
+
+	UPROPERTY(BlueprintReadOnly)
+		TArray<int> ItemAmounts; // Item amounts
+
+
 private:
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	int InventorySize; // Size of inventory
 
 	UPROPERTY()
 	int SelectedI; // For current selected inventory slot
 
-	UPROPERTY()
-	TArray<FString> ItemNames; // Item names
-
-	UPROPERTY()
-	TArray<int> ItemAmounts; // Item amounts
 
 };
