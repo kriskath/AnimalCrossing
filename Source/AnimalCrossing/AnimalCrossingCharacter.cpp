@@ -39,7 +39,6 @@ AAnimalCrossingCharacter::AAnimalCrossingCharacter()
 
 	Jumping = false;
 
-	FirstPerson = false;
 
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	//bUseControllerRotationPitch = false;
@@ -77,8 +76,36 @@ void AAnimalCrossingCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Searches for characters component of class UMyInventory and sets reference to Inventory pointer
-	Inventory = this->FindComponentByClass<UMyInventory>();
+	// Searches for characters component of class UMyInventory and sets reference to Inventory pointers
+	// Get Inventory Components and iterate through to set inventory types
+	TArray<UMyInventory*> InventoryComponents;
+	this->GetComponents<UMyInventory>(InventoryComponents);
+
+	// Check if Inventories exist
+	if (InventoryComponents.Num() > 0)
+	{
+		for (int32 i = 0; i < InventoryComponents.Num(); i++)
+		{
+			// Set Consumables Inventory
+			if (InventoryComponents[i]->InventoryType == EInventoryType::Consumable)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, "Consumable Inventory made");
+				ConsumablesInventory = this->FindComponentByClass<UMyInventory>();
+			}
+			// Set Materials Inventory
+			else if (InventoryComponents[i]->InventoryType == EInventoryType::Material)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, "Material  Inventory made");
+				MaterialsInventory = this->FindComponentByClass<UMyInventory>();
+			}
+			// Set Equipables Inventory
+			else if (InventoryComponents[i]->InventoryType == EInventoryType::Equipable)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, "Equipable Inventory made");
+				EquipablesInventory = this->FindComponentByClass<UMyInventory>();
+			}
+		}
+	}
 }
 
 void AAnimalCrossingCharacter::Tick(float DeltaTime)
@@ -116,7 +143,6 @@ void AAnimalCrossingCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	InputComponent->BindAxis("Zoom", this, &AAnimalCrossingCharacter::Zoom);
 	InputComponent->BindAction("Jump", IE_Pressed, this, &AAnimalCrossingCharacter::CheckJump);
 	InputComponent->BindAction("Jump", IE_Released, this, &AAnimalCrossingCharacter::CheckJump);
-	InputComponent->BindAction("ChangeCamera", IE_Pressed, this, &AAnimalCrossingCharacter::Switch);
 
 
 	InputComponent->BindAction("Interacting", IE_Pressed, this, &AAnimalCrossingCharacter::Interact);
@@ -143,21 +169,10 @@ void AAnimalCrossingCharacter::VerticalRot(float value)
 	if (value)
 	{
 		float temp = 0;
-		if (FirstPerson)
+		temp = Arm->GetRelativeRotation().Pitch + value;
+		if (temp < 25 && temp > -65)
 		{
-			temp = Cam->GetRelativeRotation().Pitch + value;
-			if (temp < 65 && temp > -65)
-			{
-				Cam->AddLocalRotation(FRotator(value, 0, 0));
-			}
-		}
-		else 
-		{
-			temp = Arm->GetRelativeRotation().Pitch + value;
-			if (temp < 25 && temp > -65)
-			{
-				Arm->AddLocalRotation(FRotator(value, 0, 0));
-			}
+			Arm->AddLocalRotation(FRotator(value, 0, 0));
 		}
 	}
 }
@@ -196,27 +211,6 @@ void AAnimalCrossingCharacter::Zoom(float value)
 	}
 }
 
-void AAnimalCrossingCharacter::Switch()
-{
-	if (FirstPerson)
-	{
-		Arm->TargetArmLength = 300.f;
-		Arm->SetRelativeRotation(FRotator(-45, 0, 0));
-		Cam->SetRelativeRotation(FRotator(0, 0, 0));
-		Cam->SetupAttachment(Arm, USpringArmComponent::SocketName);
-		FirstPerson = false;
-	}
-	else
-	{
-		FAttachmentTransformRules rules;
-		Cam->AttachToComponent(RootComponent, rules, );
-		Cam->SetupAttachment(RootComponent);
-		FirstPerson = true;
-	}
-}
-
-
-
 void AAnimalCrossingCharacter::CanInteract(bool Able, FString Area, FString Item, int Amount)
 {
 	canInteract = Able;
@@ -246,11 +240,11 @@ void AAnimalCrossingCharacter::Interact()
 
 void AAnimalCrossingCharacter::CollectFromArea()
 {
-	if (Inventory)
+	if (MaterialsInventory)
 	{
 		if (InteractionType != "null")
 		{
-			Inventory->AddItem(AddType, AddAmount);
+			MaterialsInventory->AddItem(AddType, AddAmount);
 			IsInteracting = false;
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Finished Interaction"));
 		}
@@ -261,17 +255,100 @@ void AAnimalCrossingCharacter::CollectFromArea()
 void AAnimalCrossingCharacter::CallIterate(float value)
 {
 	// Check if value and Inventory aren't null
-	if (value && Inventory)
+	if (value && MaterialsInventory)
 	{
 		// Call iterate function
-		Inventory->Iterate(value);
+		MaterialsInventory->Iterate(value);
 	}
 }
 
 
 void AAnimalCrossingCharacter::CallAdd()
 {
-	if (Inventory)
+	// Adds an item into the respectable inventory type
+
+	// Collect Items in range
+	TArray<AActor*> CollectionItems;
+	Range->GetOverlappingActors(CollectionItems);
+
+	for (int i = 0; i < CollectionItems.Num(); i++)
+	{
+		// Check if Item is of AItem
+		AItem* const tempItem = Cast<AItem>(CollectionItems[i]);
+
+		// Check if it exists
+		if (tempItem)
+		{
+			// If Item is Material Type add to Materials Inventory
+			if (tempItem->ItemType == EItemType::Material)
+			{
+				if (MaterialsInventory)
+				{
+					// Check if is not already being picked up, and if active in scene
+					if (!tempItem->IsPendingKill() && tempItem->GetActive())
+					{
+						MaterialsInventory->AddItem(tempItem->Name, tempItem->Amount);
+						tempItem->Touched();
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Adding to Materials Inv");
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, tempItem->Name);
+					}
+				}
+			}
+			// If Item is Consumable Type add to Consumables Inventory
+			else if (tempItem->ItemType == EItemType::Consumable)
+			{
+				if (ConsumablesInventory)
+				{
+					// Check if is not already being picked up, and if active in scene
+					if (!tempItem->IsPendingKill() && tempItem->GetActive())
+					{
+						ConsumablesInventory->AddItem(tempItem->Name, tempItem->Amount);
+						tempItem->Touched();
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Adding to Consumables Inv");
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, tempItem->Name);
+					}
+				}
+			}
+			// If Item is Equipable Type add to Equipables Inventory
+			else if (tempItem->ItemType == EItemType::Equipable)
+			{
+				if (EquipablesInventory)
+				{
+					// Check if is not already being picked up, and if active in scene
+					if (!tempItem->IsPendingKill() && tempItem->GetActive())
+					{
+						EquipablesInventory->AddItem(tempItem->Name, tempItem->Amount);
+						tempItem->Touched();
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, "Adding to Equipables Inv");
+						GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, tempItem->Name);
+					}
+				}
+			}
+		}
+	}
+
+
+	/*
+	//Adds to Materials Inventory
+	if (MaterialsInventory)
+	{
+		for (int i = 0; i < CollectionItems.Num(); i++)
+		{
+			// Attempt to cast item overlapping with range. If cast succeeds then it is pickupable, else its just part of scene
+				// If cast fails then tempItem will be NULL
+			AItem* const tempItem = Cast<AItem>(CollectionItems[i]);
+
+			// Check if it exsits, if is not already being picked up, and if active in scene
+			if (tempItem && !tempItem->IsPendingKill() && tempItem->GetActive())
+			{
+				MaterialsInventory->AddItem(tempItem->Name, tempItem->Amount);
+				tempItem->Touched();
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, tempItem->Name);
+			}
+		}
+	}
+	//Adds to Consumabless Inventory
+	else if (ConsumablesInventory)
 	{
 		TArray<AActor*> CollectionItems;
 		Range->GetOverlappingActors(CollectionItems);
@@ -285,10 +362,32 @@ void AAnimalCrossingCharacter::CallAdd()
 			// Check if it exsits, if is not already being picked up, and if active in scene
 			if (tempItem && !tempItem->IsPendingKill() && tempItem->GetActive())
 			{
-				Inventory->AddItem(tempItem->Name, tempItem->Amount);
+				ConsumablesInventory->AddItem(tempItem->Name, tempItem->Amount);
 				tempItem->Touched();
 				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, tempItem->Name);
 			}
 		}
 	}
+	// Adds to Equipables Inventory
+	else if (EquipablesInventory)
+	{
+		TArray<AActor*> CollectionItems;
+		Range->GetOverlappingActors(CollectionItems);
+
+		for (int i = 0; i < CollectionItems.Num(); i++)
+		{
+			// Attempt to cast item overlapping with range. If cast succeeds then it is pickupable, else its just part of scene
+				// If cast fails then tempItem will be NULL
+			AItem* const tempItem = Cast<AItem>(CollectionItems[i]);
+
+			// Check if it exsits, if is not already being picked up, and if active in scene
+			if (tempItem && !tempItem->IsPendingKill() && tempItem->GetActive())
+			{
+				EquipablesInventory->AddItem(tempItem->Name, tempItem->Amount);
+				tempItem->Touched();
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, tempItem->Name);
+			}
+		}
+	}
+	*/
 }

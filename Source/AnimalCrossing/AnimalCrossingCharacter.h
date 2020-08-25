@@ -43,8 +43,14 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 		FString NearByInteraction;
 
-	UPROPERTY(BlueprintReadOnly)
-		UMyInventory* Inventory;
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		UMyInventory* MaterialsInventory;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		UMyInventory* ConsumablesInventory;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		UMyInventory* EquipablesInventory;
 private:
 
 	// Determines if player interacts with area or to cut action short
@@ -126,10 +132,6 @@ private:
 		bool Jumping;
 
 	void Zoom(float value);
-	void Switch();
-
-	UPROPERTY()
-		bool FirstPerson;
 
 	UPROPERTY()
 		UCameraComponent* Cam;

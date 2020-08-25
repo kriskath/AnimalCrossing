@@ -3,6 +3,7 @@
 
 #include "Item.h"
 #include "Components/StaticMeshComponent.h"
+#include "MyInventory.h"
 
 // Sets default values
 AItem::AItem()
@@ -16,6 +17,8 @@ AItem::AItem()
 
 	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
 	RootComponent = ItemMesh;
+
+	ItemType = EItemType::Material;
 }
 
 // Called when the game starts or when spawned

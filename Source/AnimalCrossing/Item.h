@@ -8,6 +8,15 @@
 
 class UStaticMeshComponent;
 
+
+UENUM()
+enum class EItemType : uint8
+{
+	Equipable UMETA(DisplayName = "Equipable"), // Player menu inv
+	Consumable UMETA(DisplayName = "Consumable"), // Player menu inv
+	Material UMETA(DisplayName = "Material"), // Player menu inv
+};
+
 UCLASS()
 class ANIMALCROSSING_API AItem : public AActor
 {
@@ -34,9 +43,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Item") // EditAnywhere allows for changing the item in the details panel
 		FString Name;
+
 	UPROPERTY(EditAnywhere, Category = "Item")
 		int Amount;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+		EItemType ItemType; // Item Type: Equipables, Consumables, Materials (Should never be Storage)
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Item") // VisibleAnywhere so it is only editable before play in details panel

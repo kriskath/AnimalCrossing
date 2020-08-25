@@ -10,9 +10,10 @@ UMyInventory::UMyInventory()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	InventorySize = 3;
+	InventorySize = 8;
 	SelectedI = 0;
 
+	InventoryType = EInventoryType::Material;
 	// ...
 }
 

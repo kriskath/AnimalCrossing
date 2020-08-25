@@ -7,6 +7,15 @@
 #include "MyInventory.generated.h"
 
 
+UENUM()
+enum class EInventoryType : uint8
+{
+	Equipable UMETA(DisplayName = "Equipables"), // Player menu inv
+	Consumable UMETA(DisplayName = "Consumables"), // Player menu inv
+	Material UMETA(DisplayName = "Materials"), // Player menu inv
+	Storage UMETA(DisplayName = "Storage") // Chest inv for every type of item
+};
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ANIMALCROSSING_API UMyInventory : public UActorComponent
 {
@@ -38,13 +47,13 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 		TArray<int> ItemAmounts; // Item amounts
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory")
+		EInventoryType InventoryType; // Type of inventory storage : Equipables, Consumables, Materials, Storage
 
 private:
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "Inventory")
 	int InventorySize; // Size of inventory
 
 	UPROPERTY()
 	int SelectedI; // For current selected inventory slot
-
-
 };
